@@ -148,7 +148,8 @@ class Rectangle {
     this.canvas.components.push(this);
   }
   update() {
-    this.canvas.context.rect(coord[0], coord[1], this.width, this.height);
+    this.canvas.context.beginPath();
+    this.canvas.context.rect(this.coord[0], this.coord[1], this.width, this.height);
     if (this.fill_color) {
       this.canvas.context.fillStyle = this.fill_color;
       this.canvas.context.fill();
@@ -167,12 +168,12 @@ And that's it. Hopefully simple enough.
 You can now create a rectangle component.
 
 ```js
-new Rectangle(canvas, [50, 100], "green", "black", 3);
+new Rectangle(canvas, [50, 100], [75, 60], "green", "black", 3);
 ```
 
 Beautiful!
 
-todo: insert image here
+![Selling as NFT, just 10 easy payments of 5.99 ETH!](/examples/images/greenrectangle.png)
 
 ## Events
 
@@ -226,7 +227,8 @@ class Rectangle {
     }
   }
   update() {
-    this.canvas.context.rect(coord[0], coord[1], this.width, this.height);
+    this.canvas.context.beginPath();
+    this.canvas.context.rect(this.coord[0], this.coord[1], this.width, this.height);
     if (this.fill_color) {
       this.canvas.context.fillStyle = this.fill_color;
       this.canvas.context.fill();
@@ -242,7 +244,7 @@ class Rectangle {
 
 Works great!
 
-todo: gif here
+![truly revolutionary](/examples/images/greentoblue.gif)
 
 ## Functions
 
