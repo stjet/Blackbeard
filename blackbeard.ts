@@ -1,12 +1,23 @@
-class Canvas {
-  /**
-   * @param {number[]} size
-   * @param {string} id
-   * @param {HTMLElement} parent
-   */
-  constructor(size, id, parent=undefined, contextOptions=undefined) {
+
+export type CanvasEventHandler = (event: Event) => void;
+
+export interface Component {
+  update(): void;
+  type: string;
+}
+
+export class Canvas {
+  size: number[];
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+  components: Component[];
+  events: { [event_name: string]: Component[]; };
+  event_functions: { [event_name: string]: CanvasEventHandler; };
+  frame: number;
+
+  constructor(size: number[], id: string, parent: HTMLElement | undefined = undefined, contextOptions: any = undefined) {
     this.size = size;
-    this.canvas = document.createElement("CANVAS");
+    this.canvas = document.createElement("CANVAS") as HTMLCanvasElement;
     this.canvas.id = id;
     this.canvas.width = size[0];
     this.canvas.height = size[1];
@@ -16,26 +27,24 @@ class Canvas {
     } else {
       parent.appendChild(this.canvas);
     }
-    this.context = this.canvas.getContext('2d', contextOptions);
+    this.context = this.canvas.getContext('2d', contextOptions)! as CanvasRenderingContext2D;
     this.components = [];
     this.events = {};
     //this.event_functions is not meant to be read. internal use only
     this.event_functions = {};
     this.frame = 0;
-    this.click_temp_disabled = false;
+  }
+  clear() {
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
   update() {
     this.frame += 1;
     this.clear();
-    //copy the components to account for any component deletions/additions,
-    //while running .update() for the components
-    let components_snapshot = this.components.slice();
-    for (let i=0; i < components_snapshot.length; i++) {
-      components_snapshot[i].update();
+    //copy array beforehand so removals during the loop don't cause problems
+    let components_copy: Component[] = this.components.slice();
+    for (let i=0; i < components_copy.length; i++) {
+      components_copy[i].update();
     }
-  }
-  clear() {
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
   reset() {
     this.components = [];
@@ -49,35 +58,30 @@ class Canvas {
     this.event_functions = {};
     this.events = {};
   }
-  //new (name: string) => any means any class (eg TextButton)
-  /**
-   * @param {string} event
-   * @param {[new (name: string) => any]} objects
-   * @param {boolean} [overwrite=false]
-   */
-  addEvent(event, objects, overwrite=false) {
+  addEvent(event: string, objects: Component[], overwrite: boolean = false) {
     //prevent overwriting
+    let self = this;
+    function canvasEventHandler(e: Event) {
+      self.clearDeadEvents();
+      let event_items = self.events[event];
+      if (!event_items) {
+        return;
+      }
+      for (let i=0; i < event_items.length; i++) {
+        let component = event_items[i];
+        component[event](e);
+      }
+      //disable right click menu?
+      if (e.type === "contextmenu" || e.type === "scroll") {
+        return false;
+      }
+    }
     if (this.events[event] && !overwrite) {
-      this.events[event] = [].concat(this.events[event], objects);
+      this.events[event].push(...objects);
     } else if (!this.events[event]) {
       this.events[event] = objects;
       //to make sure multiple event listeners arent added, only add the listener the first time addEvent() is called for event, after a reset/start. simplified; we only need one event listener per event, prevent there being multiple
       //add components to the event separately
-      let self = this;
-      function canvasEventHandler(e) {
-        self.clearDeadEvents();
-        let event_items = self.events[event];
-        if (!event_items) {
-          return;
-        }
-        for (let i=0; i < event_items.length; i++) {
-          let component = event_items[i];
-          component[event](e);
-        }
-        if (e.type === "contextmenu" || e.type === "scroll") {
-          return false;
-        }
-      }
       this.canvas.addEventListener(event, canvasEventHandler);
       this.event_functions[event] = canvasEventHandler;
     } else {
